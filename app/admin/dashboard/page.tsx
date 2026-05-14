@@ -1,14 +1,60 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase, type Memorial } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { QRCodeCanvas } from 'qrcode.react'
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://recuerdo-digital.vercel.app'
+
+function MemorialQR({ id, nombre }: { id: string; nombre: string | null }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const url = `${BASE_URL}/memorial/${id}`
+
+  function download() {
+    const canvas = containerRef.current?.querySelector('canvas')
+    if (!canvas) return
+    const link = document.createElement('a')
+    link.download = `qr-medallon-${nombre || id}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/10">
+      <p className="text-white/30 text-xs text-center mb-3">
+        Código QR del medallón — escanear lleva al perfil memorial
+      </p>
+      <div ref={containerRef} className="flex justify-center mb-3">
+        <div className="bg-white p-4 rounded-2xl inline-block shadow-xl">
+          <QRCodeCanvas
+            value={url}
+            size={200}
+            bgColor="#ffffff"
+            fgColor="#0D1F0F"
+            level="H"
+          />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={download}
+          className="flex-1 text-sm bg-[#C8A96A]/15 hover:bg-[#C8A96A]/25 border border-[#C8A96A]/30 text-[#C8A96A] py-2.5 rounded-xl transition font-medium"
+        >
+          ⬇ Descargar para imprimir
+        </button>
+      </div>
+      <p className="text-white/15 text-xs text-center mt-2 break-all">{url}</p>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const [memorials, setMemorials] = useState<Memorial[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [expandedQR, setExpandedQR] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -54,6 +100,7 @@ export default function Dashboard() {
     if (!confirm('¿Eliminar este memorial?')) return
     await supabase.from('memorials').delete().eq('id', id)
     setMemorials(prev => prev.filter(m => m.id !== id))
+    if (expandedQR === id) setExpandedQR(null)
   }
 
   function copiarLink(token: string) {
@@ -123,64 +170,84 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-3">
             {memorials.map(m => (
-              <div key={m.id} className="bg-glass rounded-2xl p-5 flex items-center gap-4">
-                {/* Status dot */}
-                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.activo ? 'bg-green-400' : m.completado ? 'bg-[#C8A96A]' : 'bg-white/20'}`} />
+              <div key={m.id} className="bg-glass rounded-2xl p-5">
+                <div className="flex items-center gap-4">
+                  {/* Status dot */}
+                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.activo ? 'bg-green-400' : m.completado ? 'bg-[#C8A96A]' : 'bg-white/20'}`} />
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">
-                    {m.nombre || <span className="text-white/30 italic">Sin nombre aún</span>}
-                  </p>
-                  <p className="text-white/30 text-xs mt-0.5">
-                    {m.completado ? '✓ Completado por la familia' : 'Pendiente de completar'} ·{' '}
-                    {new Date(m.created_at).toLocaleDateString('es-CL')}
-                  </p>
-                </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">
+                      {m.nombre || <span className="text-white/30 italic">Sin nombre aún</span>}
+                    </p>
+                    <p className="text-white/30 text-xs mt-0.5">
+                      {m.completado ? '✓ Completado por la familia' : 'Pendiente de completar'} ·{' '}
+                      {new Date(m.created_at).toLocaleDateString('es-CL')}
+                    </p>
+                  </div>
 
-                {/* Acciones */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Copiar link familia */}
-                  <button
-                    onClick={() => copiarLink(m.token)}
-                    className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition"
-                    title="Copiar link para la familia"
-                  >
-                    {copied === m.token ? '✓ Copiado' : '🔗 Link familia'}
-                  </button>
-
-                  {/* Ver memorial */}
-                  {m.completado && (
-                    <Link
-                      href={`/memorial/${m.id}`}
-                      target="_blank"
-                      className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition"
+                  {/* Acciones */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Ver QR */}
+                    <button
+                      onClick={() => setExpandedQR(expandedQR === m.id ? null : m.id)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+                        expandedQR === m.id
+                          ? 'bg-[#C8A96A]/20 border-[#C8A96A]/40 text-[#C8A96A]'
+                          : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white'
+                      }`}
+                      title="Ver y descargar QR"
                     >
-                      👁 Ver
-                    </Link>
-                  )}
+                      📱 QR
+                    </button>
 
-                  {/* Toggle activo */}
-                  <button
-                    onClick={() => toggleActivo(m.id, m.activo)}
-                    className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                      m.activo
-                        ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
-                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
-                    }`}
-                  >
-                    {m.activo ? 'Activo' : 'Activar'}
-                  </button>
+                    {/* Copiar link familia */}
+                    <button
+                      onClick={() => copiarLink(m.token)}
+                      className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition"
+                      title="Copiar link para la familia"
+                    >
+                      {copied === m.token ? '✓ Copiado' : '🔗 Link familia'}
+                    </button>
 
-                  {/* Eliminar */}
-                  <button
-                    onClick={() => eliminar(m.id)}
-                    className="text-xs text-red-400/50 hover:text-red-400 transition px-2 py-1.5"
-                    title="Eliminar"
-                  >
-                    ✕
-                  </button>
+                    {/* Ver memorial */}
+                    {m.completado && (
+                      <Link
+                        href={`/memorial/${m.id}`}
+                        target="_blank"
+                        className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition"
+                      >
+                        👁 Ver
+                      </Link>
+                    )}
+
+                    {/* Toggle activo */}
+                    <button
+                      onClick={() => toggleActivo(m.id, m.activo)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+                        m.activo
+                          ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                          : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                      }`}
+                    >
+                      {m.activo ? 'Activo' : 'Activar'}
+                    </button>
+
+                    {/* Eliminar */}
+                    <button
+                      onClick={() => eliminar(m.id)}
+                      className="text-xs text-red-400/50 hover:text-red-400 transition px-2 py-1.5"
+                      title="Eliminar"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
+
+                {/* QR expandido */}
+                {expandedQR === m.id && (
+                  <MemorialQR id={m.id} nombre={m.nombre} />
+                )}
               </div>
             ))}
           </div>

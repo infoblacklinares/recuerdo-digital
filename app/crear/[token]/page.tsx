@@ -19,6 +19,8 @@ export default function CrearMemorial() {
   const [mensaje, setMensaje] = useState('')
   const [fotos, setFotos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -69,6 +71,24 @@ export default function CrearMemorial() {
     maxFiles: 10,
   })
 
+  async function handleVideoUpload(file: File) {
+    setUploadingVideo(true)
+    const ext = file.name.split('.').pop()
+    const fileName = `${token}/video-${Date.now()}.${ext}`
+
+    const { error } = await supabase.storage
+      .from('memorial-fotos')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false })
+
+    if (!error) {
+      const { data } = supabase.storage.from('memorial-fotos').getPublicUrl(fileName)
+      setVideoUrl(data.publicUrl)
+    } else {
+      alert('Error al subir el video: ' + error.message)
+    }
+    setUploadingVideo(false)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!memorial) return
@@ -83,6 +103,7 @@ export default function CrearMemorial() {
         fecha_fallecimiento: fechaFallecimiento || null,
         mensaje: mensaje.trim() || null,
         fotos,
+        video_url: videoUrl,
         completado: true,
         activo: true,
       })
@@ -237,10 +258,51 @@ export default function CrearMemorial() {
             )}
           </div>
 
+          {/* Video */}
+          <div>
+            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">
+              Video (opcional · máximo 1)
+            </label>
+
+            {videoUrl ? (
+              <div className="space-y-2">
+                <video src={videoUrl} controls playsInline className="w-full rounded-xl border border-white/10" />
+                <button
+                  type="button"
+                  onClick={() => setVideoUrl(null)}
+                  className="text-xs text-red-400/60 hover:text-red-400 transition"
+                >
+                  ✕ Eliminar video
+                </button>
+              </div>
+            ) : (
+              <label className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition flex flex-col items-center ${
+                uploadingVideo ? 'border-[#C8A96A]/50 bg-[#C8A96A]/5' : 'border-white/10 hover:border-white/30'
+              }`}>
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={e => e.target.files?.[0] && handleVideoUpload(e.target.files[0])}
+                  disabled={uploadingVideo}
+                />
+                <p className="text-3xl mb-2">🎞️</p>
+                {uploadingVideo ? (
+                  <p className="text-[#C8A96A] text-sm">Subiendo video...</p>
+                ) : (
+                  <>
+                    <p className="text-white/50 text-sm">Haz clic para seleccionar un video</p>
+                    <p className="text-white/20 text-xs mt-1">MP4, MOV — máximo 1 video</p>
+                  </>
+                )}
+              </label>
+            )}
+          </div>
+
           {/* Submit */}
           <button
             type="submit"
-            disabled={saving || uploading}
+            disabled={saving || uploading || uploadingVideo}
             className="w-full bg-[#C8A96A] hover:bg-[#b8945a] text-[#0D1F0F] font-semibold py-4 rounded-xl transition disabled:opacity-50 text-sm uppercase tracking-wider"
           >
             {saving ? 'Guardando...' : 'Crear Recuerdo Digital →'}

@@ -13,6 +13,7 @@ export type Memorial = {
   fecha_fallecimiento: string | null
   mensaje: string | null
   fotos: string[]
+  video_url: string | null
   activo: boolean
   completado: boolean
   created_at: string
