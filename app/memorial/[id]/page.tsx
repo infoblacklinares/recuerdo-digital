@@ -1,8 +1,12 @@
-import { supabase, type Memorial } from '@/lib/supabase'
+import { supabase, type Condolencia } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import type { Metadata } from 'next'
+import CondolenciasSection from '@/components/CondolenciasSection'
 
 export const revalidate = 60
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://recuerdo-digital.vercel.app'
 
 function formatFecha(fecha: string | null): string {
   if (!fecha) return ''
@@ -21,18 +25,53 @@ function calcularEdad(nac: string | null, fal: string | null): string {
   return `${edad} años`
 }
 
-export default async function MemorialPage({ params }: { params: { id: string } }) {
-  const { data: memorial, error } = await supabase
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const { data: memorial } = await supabase
     .from('memorials')
-    .select('*')
+    .select('nombre, mensaje, fotos')
     .eq('id', params.id)
     .eq('activo', true)
     .single()
 
-  if (error || !memorial) notFound()
+  if (!memorial) return { title: 'Recuerdo Digital' }
+
+  const titulo = `${memorial.nombre} — Recuerdo Digital`
+  const descripcion = memorial.mensaje
+    ? `"${memorial.mensaje.slice(0, 120)}${memorial.mensaje.length > 120 ? '...' : ''}"`
+    : `Perfil memorial de ${memorial.nombre} · Florería Angélica`
+  const imagen = memorial.fotos?.[0] ?? null
+
+  return {
+    title: titulo,
+    description: descripcion,
+    openGraph: {
+      title: titulo,
+      description: descripcion,
+      url: `${BASE_URL}/memorial/${params.id}`,
+      siteName: 'Recuerdo Digital — Florería Angélica',
+      ...(imagen ? { images: [{ url: imagen, width: 800, height: 800, alt: memorial.nombre }] } : {}),
+      type: 'profile',
+      locale: 'es_CL',
+    },
+    twitter: {
+      card: imagen ? 'summary_large_image' : 'summary',
+      title: titulo,
+      description: descripcion,
+      ...(imagen ? { images: [imagen] } : {}),
+    },
+  }
+}
+
+export default async function MemorialPage({ params }: { params: { id: string } }) {
+  const [{ data: memorial }, { data: condolencias }] = await Promise.all([
+    supabase.from('memorials').select('*').eq('id', params.id).eq('activo', true).single(),
+    supabase.from('condolencias').select('*').eq('memorial_id', params.id).order('created_at', { ascending: false }).limit(50),
+  ])
+
+  if (!memorial) notFound()
 
   const edad = calcularEdad(memorial.fecha_nacimiento, memorial.fecha_fallecimiento)
-  const memorialUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://recuerdo-digital.vercel.app'}/memorial/${memorial.id}`
+  const memorialUrl = `${BASE_URL}/memorial/${memorial.id}`
   const whatsappText = encodeURIComponent(`Te comparto el recuerdo de ${memorial.nombre}: ${memorialUrl}`)
 
   return (
@@ -141,6 +180,12 @@ export default async function MemorialPage({ params }: { params: { id: string } 
             </div>
           </div>
         )}
+
+        {/* Condolencias */}
+        <CondolenciasSection
+          memorialId={memorial.id}
+          initialCondolencias={(condolencias as Condolencia[]) ?? []}
+        />
 
         {/* Footer */}
         <div className="text-center pb-10">

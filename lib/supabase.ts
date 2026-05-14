@@ -14,7 +14,17 @@ export type Memorial = {
   mensaje: string | null
   fotos: string[]
   video_url: string | null
+  cliente_nombre: string | null
+  cliente_telefono: string | null
   activo: boolean
   completado: boolean
+  created_at: string
+}
+
+export type Condolencia = {
+  id: string
+  memorial_id: string
+  nombre: string
+  mensaje: string
   created_at: string
 }
