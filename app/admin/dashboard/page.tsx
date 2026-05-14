@@ -8,27 +8,38 @@ import { QRCodeCanvas } from 'qrcode.react'
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://recuerdo-digital.vercel.app'
 
 function MemorialQR({ id, nombre }: { id: string; nombre: string | null }) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const printRef = useRef<HTMLDivElement>(null)
   const url = `${BASE_URL}/memorial/${id}`
+
   function download() {
-    const canvas = containerRef.current?.querySelector('canvas')
+    // Usa el canvas de alta resolución (oculto) para el PNG
+    const canvas = printRef.current?.querySelector('canvas')
     if (!canvas) return
     const link = document.createElement('a')
     link.download = `qr-medallon-${nombre || id}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
   }
+
   return (
     <div className="mt-4 pt-4 border-t border-white/10">
       <p className="text-white/30 text-xs text-center mb-3">QR — escanear lleva al perfil memorial</p>
-      <div ref={containerRef} className="flex justify-center mb-3">
+
+      {/* QR visible en pantalla */}
+      <div className="flex justify-center mb-3">
         <div className="bg-white p-4 rounded-2xl inline-block shadow-xl">
-          <QRCodeCanvas value={url} size={200} bgColor="#ffffff" fgColor="#0D1F0F" level="H" />
+          <QRCodeCanvas value={url} size={220} bgColor="#ffffff" fgColor="#000000" level="M" />
         </div>
       </div>
+
+      {/* Canvas oculto de alta res para descarga (800×800) */}
+      <div ref={printRef} className="hidden">
+        <QRCodeCanvas value={url} size={800} bgColor="#ffffff" fgColor="#000000" level="M" />
+      </div>
+
       <button onClick={download}
         className="w-full text-sm bg-[#C8A96A]/15 hover:bg-[#C8A96A]/25 border border-[#C8A96A]/30 text-[#C8A96A] py-2.5 rounded-xl transition font-medium">
-        ⬇ Descargar para imprimir
+        ⬇ Descargar para imprimir (alta resolución)
       </button>
       <p className="text-white/15 text-xs text-center mt-2 break-all">{url}</p>
     </div>
