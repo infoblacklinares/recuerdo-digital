@@ -248,7 +248,7 @@ export default function CrearMemorial() {
                     <button
                       type="button"
                       onClick={() => setFotos(prev => prev.filter((_, j) => j !== i))}
-                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 text-xs opacity-0 group-hover:opacity-100 transition"
+                      className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-7 h-7 text-xs flex items-center justify-center shadow-md"
                     >
                       ✕
                     </button>

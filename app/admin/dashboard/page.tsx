@@ -36,14 +36,12 @@ function MemorialQR({ id, nombre }: { id: string; nombre: string | null }) {
           />
         </div>
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={download}
-          className="flex-1 text-sm bg-[#C8A96A]/15 hover:bg-[#C8A96A]/25 border border-[#C8A96A]/30 text-[#C8A96A] py-2.5 rounded-xl transition font-medium"
-        >
-          ⬇ Descargar para imprimir
-        </button>
-      </div>
+      <button
+        onClick={download}
+        className="w-full text-sm bg-[#C8A96A]/15 hover:bg-[#C8A96A]/25 border border-[#C8A96A]/30 text-[#C8A96A] py-2.5 rounded-xl transition font-medium"
+      >
+        ⬇ Descargar para imprimir
+      </button>
       <p className="text-white/15 text-xs text-center mt-2 break-all">{url}</p>
     </div>
   )
@@ -118,43 +116,43 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-dark">
       {/* Header */}
-      <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-white/10 px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🌿</span>
+          <span className="text-xl">🌿</span>
           <div>
-            <h1 className="text-white font-serif text-lg">Recuerdo Digital</h1>
+            <h1 className="text-white font-serif text-base leading-tight">Recuerdo Digital</h1>
             <p className="text-white/30 text-xs uppercase tracking-widest">Panel Admin</p>
           </div>
         </div>
         <button onClick={handleLogout} className="text-white/40 hover:text-white text-sm transition">
-          Cerrar sesión
+          Salir
         </button>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
+      <main className="max-w-5xl mx-auto px-4 py-6">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-3 gap-3 mb-8">
           {[
             { label: 'Total', value: memorials.length },
             { label: 'Completados', value: memorials.filter(m => m.completado).length },
             { label: 'Activos', value: memorials.filter(m => m.activo).length },
           ].map(stat => (
-            <div key={stat.label} className="bg-glass rounded-2xl p-5 text-center">
-              <p className="text-3xl font-serif text-[#C8A96A]">{stat.value}</p>
+            <div key={stat.label} className="bg-glass rounded-2xl p-4 text-center">
+              <p className="text-2xl font-serif text-[#C8A96A]">{stat.value}</p>
               <p className="text-white/40 text-xs uppercase tracking-widest mt-1">{stat.label}</p>
             </div>
           ))}
         </div>
 
         {/* Botón crear */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-white font-serif text-xl">Medallones</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-serif text-lg">Medallones</h2>
           <button
             onClick={crearNuevoMedallón}
             disabled={creating}
-            className="bg-[#C8A96A] hover:bg-[#b8945a] text-[#0D1F0F] font-semibold px-5 py-2.5 rounded-xl text-sm transition disabled:opacity-50"
+            className="bg-[#C8A96A] hover:bg-[#b8945a] text-[#0D1F0F] font-semibold px-4 py-2 rounded-xl text-sm transition disabled:opacity-50"
           >
-            {creating ? 'Creando...' : '+ Nuevo medallón'}
+            {creating ? 'Creando...' : '+ Nuevo'}
           </button>
         </div>
 
@@ -165,83 +163,76 @@ export default function Dashboard() {
           <div className="text-center py-20 bg-glass rounded-2xl">
             <p className="text-4xl mb-4">🌸</p>
             <p className="text-white/40">No hay medallones aún.</p>
-            <p className="text-white/20 text-sm mt-1">Crea uno para empezar.</p>
           </div>
         ) : (
           <div className="space-y-3">
             {memorials.map(m => (
-              <div key={m.id} className="bg-glass rounded-2xl p-5">
-                <div className="flex items-center gap-4">
-                  {/* Status dot */}
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${m.activo ? 'bg-green-400' : m.completado ? 'bg-[#C8A96A]' : 'bg-white/20'}`} />
-
-                  {/* Info */}
+              <div key={m.id} className="bg-glass rounded-2xl p-4">
+                {/* Fila 1: estado + info */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${m.activo ? 'bg-green-400' : m.completado ? 'bg-[#C8A96A]' : 'bg-white/20'}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate">
+                    <p className="text-white font-medium text-sm leading-snug">
                       {m.nombre || <span className="text-white/30 italic">Sin nombre aún</span>}
                     </p>
                     <p className="text-white/30 text-xs mt-0.5">
-                      {m.completado ? '✓ Completado por la familia' : 'Pendiente de completar'} ·{' '}
-                      {new Date(m.created_at).toLocaleDateString('es-CL')}
+                      {m.completado ? '✓ Completado' : 'Pendiente'} · {new Date(m.created_at).toLocaleDateString('es-CL')}
                     </p>
                   </div>
+                  {/* Eliminar - siempre visible */}
+                  <button
+                    onClick={() => eliminar(m.id)}
+                    className="text-red-400/40 hover:text-red-400 transition p-1 flex-shrink-0"
+                    title="Eliminar"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-                  {/* Acciones */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Ver QR */}
-                    <button
-                      onClick={() => setExpandedQR(expandedQR === m.id ? null : m.id)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                        expandedQR === m.id
-                          ? 'bg-[#C8A96A]/20 border-[#C8A96A]/40 text-[#C8A96A]'
-                          : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white'
-                      }`}
-                      title="Ver y descargar QR"
-                    >
-                      📱 QR
-                    </button>
+                {/* Fila 2: acciones */}
+                <div className="flex flex-wrap gap-2">
+                  {/* Ver QR */}
+                  <button
+                    onClick={() => setExpandedQR(expandedQR === m.id ? null : m.id)}
+                    className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+                      expandedQR === m.id
+                        ? 'bg-[#C8A96A]/20 border-[#C8A96A]/40 text-[#C8A96A]'
+                        : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white'
+                    }`}
+                  >
+                    📱 QR
+                  </button>
 
-                    {/* Copiar link familia */}
-                    <button
-                      onClick={() => copiarLink(m.token)}
+                  {/* Copiar link familia */}
+                  <button
+                    onClick={() => copiarLink(m.token)}
+                    className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition"
+                  >
+                    {copied === m.token ? '✓ Copiado' : '🔗 Link familia'}
+                  </button>
+
+                  {/* Ver memorial */}
+                  {m.completado && (
+                    <Link
+                      href={`/memorial/${m.id}`}
+                      target="_blank"
                       className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition"
-                      title="Copiar link para la familia"
                     >
-                      {copied === m.token ? '✓ Copiado' : '🔗 Link familia'}
-                    </button>
+                      👁 Ver
+                    </Link>
+                  )}
 
-                    {/* Ver memorial */}
-                    {m.completado && (
-                      <Link
-                        href={`/memorial/${m.id}`}
-                        target="_blank"
-                        className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition"
-                      >
-                        👁 Ver
-                      </Link>
-                    )}
-
-                    {/* Toggle activo */}
-                    <button
-                      onClick={() => toggleActivo(m.id, m.activo)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                        m.activo
-                          ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
-                          : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
-                      }`}
-                    >
-                      {m.activo ? 'Activo' : 'Activar'}
-                    </button>
-
-                    {/* Eliminar */}
-                    <button
-                      onClick={() => eliminar(m.id)}
-                      className="text-xs text-red-400/50 hover:text-red-400 transition px-2 py-1.5"
-                      title="Eliminar"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  {/* Toggle activo */}
+                  <button
+                    onClick={() => toggleActivo(m.id, m.activo)}
+                    className={`text-xs px-3 py-1.5 rounded-lg border transition ${
+                      m.activo
+                        ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {m.activo ? '● Activo' : 'Activar'}
+                  </button>
                 </div>
 
                 {/* QR expandido */}

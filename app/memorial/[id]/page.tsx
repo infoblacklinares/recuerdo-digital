@@ -63,15 +63,17 @@ export default async function MemorialPage({ params }: { params: { id: string } 
           )}
 
           {/* Nombre */}
-          <h1 className="text-4xl md:text-5xl font-serif text-white mb-3">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-white mb-3 break-words px-2">
             {memorial.nombre}
           </h1>
 
           {/* Fechas */}
           {(memorial.fecha_nacimiento || memorial.fecha_fallecimiento) && (
-            <p className="text-[#C8A96A] text-base mb-1">
+            <p className="text-[#C8A96A] text-sm sm:text-base mb-1 px-2">
               {formatFecha(memorial.fecha_nacimiento)}
-              {memorial.fecha_nacimiento && memorial.fecha_fallecimiento && ' — '}
+              {memorial.fecha_nacimiento && memorial.fecha_fallecimiento && (
+                <span className="block sm:inline"> — </span>
+              )}
               {formatFecha(memorial.fecha_fallecimiento)}
             </p>
           )}
