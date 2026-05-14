@@ -16,6 +16,7 @@ export type Memorial = {
   video_url: string | null
   cliente_nombre: string | null
   cliente_telefono: string | null
+  visitas: number
   activo: boolean
   completado: boolean
   created_at: string

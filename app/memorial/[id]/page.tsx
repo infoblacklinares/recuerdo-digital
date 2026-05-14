@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import type { Metadata } from 'next'
 import CondolenciasSection from '@/components/CondolenciasSection'
+import VisitaTracker from '@/components/VisitaTracker'
 
 export const revalidate = 60
 
@@ -76,6 +77,7 @@ export default async function MemorialPage({ params }: { params: { id: string } 
 
   return (
     <div className="min-h-screen bg-dark">
+      <VisitaTracker memorialId={memorial.id} />
       {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#1E3A22] to-[#0D1F0F]" />

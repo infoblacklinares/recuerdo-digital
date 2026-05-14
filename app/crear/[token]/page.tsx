@@ -12,6 +12,7 @@ export default function CrearMemorial() {
   const [notFound, setNotFound] = useState(false)
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
+  const [esEdicion, setEsEdicion] = useState(false)
 
   const [nombre, setNombre] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
@@ -32,10 +33,17 @@ export default function CrearMemorial() {
 
       if (error || !data) {
         setNotFound(true)
-      } else if (data.completado) {
-        router.push(`/memorial/${data.id}`)
       } else {
         setMemorial(data)
+        if (data.completado) {
+          setEsEdicion(true)
+          setNombre(data.nombre || '')
+          setFechaNacimiento(data.fecha_nacimiento || '')
+          setFechaFallecimiento(data.fecha_fallecimiento || '')
+          setMensaje(data.mensaje || '')
+          setFotos(data.fotos || [])
+          setVideoUrl(data.video_url || null)
+        }
       }
     }
     load()
@@ -44,23 +52,18 @@ export default function CrearMemorial() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setUploading(true)
     const nuevasFotos: string[] = []
-
     for (const file of acceptedFiles) {
+      if (file.size > 5 * 1024 * 1024) { alert(`${file.name} supera los 5 MB.`); continue }
       const ext = file.name.split('.').pop()
       const fileName = `${token}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
       const { error } = await supabase.storage
         .from('memorial-fotos')
         .upload(fileName, file, { cacheControl: '3600', upsert: false })
-
       if (!error) {
-        const { data: urlData } = supabase.storage
-          .from('memorial-fotos')
-          .getPublicUrl(fileName)
+        const { data: urlData } = supabase.storage.from('memorial-fotos').getPublicUrl(fileName)
         nuevasFotos.push(urlData.publicUrl)
       }
     }
-
     setFotos(prev => [...prev, ...nuevasFotos])
     setUploading(false)
   }, [token])
@@ -72,14 +75,13 @@ export default function CrearMemorial() {
   })
 
   async function handleVideoUpload(file: File) {
+    if (file.size > 100 * 1024 * 1024) { alert('El video no puede superar los 100 MB.'); return }
     setUploadingVideo(true)
     const ext = file.name.split('.').pop()
     const fileName = `${token}/video-${Date.now()}.${ext}`
-
     const { error } = await supabase.storage
       .from('memorial-fotos')
       .upload(fileName, file, { cacheControl: '3600', upsert: false })
-
     if (!error) {
       const { data } = supabase.storage.from('memorial-fotos').getPublicUrl(fileName)
       setVideoUrl(data.publicUrl)
@@ -93,7 +95,6 @@ export default function CrearMemorial() {
     e.preventDefault()
     if (!memorial) return
     if (!nombre.trim()) return alert('Por favor ingresa el nombre.')
-
     setSaving(true)
     const { error } = await supabase
       .from('memorials')
@@ -138,7 +139,9 @@ export default function CrearMemorial() {
     <div className="min-h-screen flex items-center justify-center bg-dark px-4">
       <div className="text-center">
         <p className="text-5xl mb-4">🌸</p>
-        <h1 className="text-white text-2xl font-serif mb-2">¡Listo!</h1>
+        <h1 className="text-white text-2xl font-serif mb-2">
+          {esEdicion ? '¡Perfil actualizado!' : '¡Listo!'}
+        </h1>
         <p className="text-white/50 text-sm">Preparando el perfil de recuerdo...</p>
       </div>
     </div>
@@ -147,21 +150,21 @@ export default function CrearMemorial() {
   return (
     <div className="min-h-screen bg-dark py-12 px-4">
       <div className="max-w-xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-10">
           <div className="text-4xl mb-3">🌿</div>
-          <h1 className="text-white font-serif text-2xl mb-1">Crear Recuerdo Digital</h1>
+          <h1 className="text-white font-serif text-2xl mb-1">
+            {esEdicion ? 'Editar Recuerdo Digital' : 'Crear Recuerdo Digital'}
+          </h1>
           <p className="text-white/40 text-sm">
-            Completa los datos de tu ser querido. Este perfil quedará disponible en el medallón.
+            {esEdicion
+              ? 'Actualiza los datos del perfil memorial.'
+              : 'Completa los datos de tu ser querido. Este perfil quedará disponible en el medallón.'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Nombre */}
           <div>
-            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">
-              Nombre completo *
-            </label>
+            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">Nombre completo *</label>
             <input
               type="text"
               value={nombre}
@@ -172,84 +175,45 @@ export default function CrearMemorial() {
             />
           </div>
 
-          {/* Fechas */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">
-                Fecha de nacimiento
-              </label>
-              <input
-                type="date"
-                value={fechaNacimiento}
-                onChange={e => setFechaNacimiento(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#C8A96A] transition"
-              />
+              <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">Fecha de nacimiento</label>
+              <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#C8A96A] transition" />
             </div>
             <div>
-              <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">
-                Fecha de fallecimiento
-              </label>
-              <input
-                type="date"
-                value={fechaFallecimiento}
-                onChange={e => setFechaFallecimiento(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#C8A96A] transition"
-              />
+              <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">Fecha de fallecimiento</label>
+              <input type="date" value={fechaFallecimiento} onChange={e => setFechaFallecimiento(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#C8A96A] transition" />
             </div>
           </div>
 
-          {/* Mensaje */}
           <div>
-            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">
-              Mensaje o dedicatoria
-            </label>
-            <textarea
-              value={mensaje}
-              onChange={e => setMensaje(e.target.value)}
-              rows={4}
+            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">Mensaje o dedicatoria</label>
+            <textarea value={mensaje} onChange={e => setMensaje(e.target.value)} rows={4}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-[#C8A96A] transition resize-none"
-              placeholder="Escribe un mensaje especial, un recuerdo o una dedicatoria..."
-            />
+              placeholder="Escribe un mensaje especial, un recuerdo o una dedicatoria..." />
           </div>
 
-          {/* Fotos */}
           <div>
-            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">
-              Fotos (máximo 10)
-            </label>
-
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition ${
-                isDragActive
-                  ? 'border-[#C8A96A] bg-[#C8A96A]/10'
-                  : 'border-white/10 hover:border-white/30'
-              }`}
-            >
+            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">Fotos (máximo 10)</label>
+            <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition ${isDragActive ? 'border-[#C8A96A] bg-[#C8A96A]/10' : 'border-white/10 hover:border-white/30'}`}>
               <input {...getInputProps()} />
               <p className="text-3xl mb-2">📸</p>
-              {uploading ? (
-                <p className="text-white/50 text-sm">Subiendo fotos...</p>
-              ) : isDragActive ? (
-                <p className="text-[#C8A96A] text-sm">Suelta las fotos aquí</p>
-              ) : (
-                <>
+              {uploading ? <p className="text-white/50 text-sm">Subiendo fotos...</p>
+                : isDragActive ? <p className="text-[#C8A96A] text-sm">Suelta las fotos aquí</p>
+                : <>
                   <p className="text-white/50 text-sm">Arrastra fotos o haz clic para seleccionar</p>
-                  <p className="text-white/20 text-xs mt-1">JPG, PNG — hasta 10 fotos</p>
-                </>
-              )}
+                  <p className="text-white/20 text-xs mt-1">JPG, PNG — máx 5 MB por foto</p>
+                </>}
             </div>
-
             {fotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mt-3">
                 {fotos.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden group">
                     <Image src={url} alt={`Foto ${i + 1}`} fill className="object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setFotos(prev => prev.filter((_, j) => j !== i))}
-                      className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-7 h-7 text-xs flex items-center justify-center shadow-md"
-                    >
+                    <button type="button" onClick={() => setFotos(prev => prev.filter((_, j) => j !== i))}
+                      className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-7 h-7 text-xs flex items-center justify-center shadow-md">
                       ✕
                     </button>
                   </div>
@@ -258,58 +222,38 @@ export default function CrearMemorial() {
             )}
           </div>
 
-          {/* Video */}
           <div>
-            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">
-              Video (opcional · máximo 1)
-            </label>
-
+            <label className="block text-xs text-white/50 uppercase tracking-wider mb-2">Video (opcional · máximo 1)</label>
             {videoUrl ? (
               <div className="space-y-2">
                 <video src={videoUrl} controls playsInline className="w-full rounded-xl border border-white/10" />
-                <button
-                  type="button"
-                  onClick={() => setVideoUrl(null)}
-                  className="text-xs text-red-400/60 hover:text-red-400 transition"
-                >
+                <button type="button" onClick={() => setVideoUrl(null)} className="text-xs text-red-400/60 hover:text-red-400 transition">
                   ✕ Eliminar video
                 </button>
               </div>
             ) : (
-              <label className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition flex flex-col items-center ${
-                uploadingVideo ? 'border-[#C8A96A]/50 bg-[#C8A96A]/5' : 'border-white/10 hover:border-white/30'
-              }`}>
-                <input
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
+              <label className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition flex flex-col items-center ${uploadingVideo ? 'border-[#C8A96A]/50 bg-[#C8A96A]/5' : 'border-white/10 hover:border-white/30'}`}>
+                <input type="file" accept="video/*" className="hidden"
                   onChange={e => e.target.files?.[0] && handleVideoUpload(e.target.files[0])}
-                  disabled={uploadingVideo}
-                />
+                  disabled={uploadingVideo} />
                 <p className="text-3xl mb-2">🎞️</p>
-                {uploadingVideo ? (
-                  <p className="text-[#C8A96A] text-sm">Subiendo video...</p>
-                ) : (
-                  <>
+                {uploadingVideo
+                  ? <p className="text-[#C8A96A] text-sm">Subiendo video...</p>
+                  : <>
                     <p className="text-white/50 text-sm">Haz clic para seleccionar un video</p>
-                    <p className="text-white/20 text-xs mt-1">MP4, MOV — máximo 1 video</p>
-                  </>
-                )}
+                    <p className="text-white/20 text-xs mt-1">MP4, MOV — máx 100 MB</p>
+                  </>}
               </label>
             )}
           </div>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={saving || uploading || uploadingVideo}
-            className="w-full bg-[#C8A96A] hover:bg-[#b8945a] text-[#0D1F0F] font-semibold py-4 rounded-xl transition disabled:opacity-50 text-sm uppercase tracking-wider"
-          >
-            {saving ? 'Guardando...' : 'Crear Recuerdo Digital →'}
+          <button type="submit" disabled={saving || uploading || uploadingVideo}
+            className="w-full bg-[#C8A96A] hover:bg-[#b8945a] text-[#0D1F0F] font-semibold py-4 rounded-xl transition disabled:opacity-50 text-sm uppercase tracking-wider">
+            {saving ? 'Guardando...' : esEdicion ? 'Actualizar Recuerdo Digital →' : 'Crear Recuerdo Digital →'}
           </button>
 
           <p className="text-center text-white/20 text-xs">
-            Al enviar, el perfil quedará disponible en el medallón QR
+            {esEdicion ? 'Los cambios se verán reflejados de inmediato en el perfil.' : 'Al enviar, el perfil quedará disponible en el medallón QR'}
           </p>
         </form>
       </div>
